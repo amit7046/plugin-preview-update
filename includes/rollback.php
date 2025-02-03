@@ -1,26 +1,31 @@
 <?php
-if (!defined('ABSPATH')) exit;
+if (!defined('ABSPATH')) {
+    exit;
+}
 
-add_action('admin_menu', function() {
-    add_submenu_page('tools.php', 'Rollback Plugin Update', 'Rollback Update', 'manage_options', 'rollback-update', 'ppu_rollback_update_page');
-});
-
-function ppu_rollback_update_page() {
-    if (!current_user_can('manage_options')) return;
-
-    $plugin_file = isset($_GET['plugin']) ? sanitize_text_field($_GET['plugin']) : '';
-    if (!$plugin_file) {
-        echo '<div class="error"><p>No plugin specified.</p></div>';
-        return;
+// Function to rollback plugin
+function ppu_rollback_plugin() {
+    if (!current_user_can('update_plugins') || !check_admin_referer('rollback_plugin')) {
+        wp_die(__('Unauthorized access', 'preview-plugin-update'));
     }
 
-    $plugin_dir = WP_PLUGIN_DIR . '/' . dirname($plugin_file);
-    $backup_dir = WP_PLUGIN_DIR . '/backup_' . basename($plugin_dir);
+    $plugin = isset($_GET['plugin']) ? sanitize_text_field($_GET['plugin']) : '';
+    if (empty($plugin)) {
+        wp_die(__('Invalid plugin.', 'preview-plugin-update'));
+    }
+
+    $backup_dir = WP_CONTENT_DIR . '/plugin-backups/' . dirname($plugin);
+    $plugin_dir = WP_PLUGIN_DIR . '/' . dirname($plugin);
 
     if (file_exists($backup_dir)) {
-        copy_dir($backup_dir, $plugin_dir);
-        echo '<div class="updated"><p>Plugin rollback successful.</p></div>';
+        // Restore backup
+        ppu_copy_directory($backup_dir, $plugin_dir);
+        wp_redirect(admin_url('plugins.php?rollback_success=1'));
+        exit;
     } else {
-        echo '<div class="error"><p>Backup not found.</p></div>';
+        wp_die(__('Backup not found.', 'preview-plugin-update'));
     }
 }
+add_action('admin_menu', function () {
+    add_submenu_page(null, 'Rollback Plugin Update', 'Rollback Plugin Update', 'manage_options', 'rollback-plugin', 'ppu_rollback_plugin');
+});

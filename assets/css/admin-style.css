@@ -1,7 +1,5 @@
 .ppu-preview-button {
-    color: #0073aa;
+    color: blue;
     font-weight: bold;
-}
-.ppu-preview-button:hover {
-    color: #005177;
+    cursor: pointer;
 }
